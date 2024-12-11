@@ -1,29 +1,142 @@
-var express = require('express');//express package that we imported
-const { MongoDBCollectionNamespace } = require('mongodb');
-var path = require('path');//path package
-var app = express();//initiation for the express web server
-//(we will use when we implement any function)
+import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url'; 
+import session from 'express-session';
+import { MongoClient } from 'mongodb';
+import { JSDOM } from 'jsdom';
 
-app.set('views', path.join(__dirname,'views'));//all html files in views folder
-app.set('view engine','ejs');//extension of the html files
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const app = express();
+
+app.set('views', path.join(__dirname, 'views')); 
+app.set('view engine', 'ejs'); 
 
 app.use(express.json());
-app.use(express.urlencoded({extended : false}));
-app.use(express.static(path.join(__dirname,'public')));
+app.use(express.urlencoded({ extended: false }));
+app.use(express.static(path.join(__dirname, 'public'))); 
+
 //the public folder will contain all static files(images and videos)
 
 //To connect mongodb to our nodejs code
-var MongoClient = require('mongodb').MongoClient;//import the mongodb installed
+const uri = "mongodb://localhost:27017/"; 
+const client = new MongoClient(uri);
 
-MongoClient.connect("mongodb://127.0.0.1:27017", function(err,client){//port # => one found in mongodb when establlishing a connection
-    if(err) throw error;
-    var db = client.db('myDB');//type the database name
-    db.collection('FirstCollection').insertOne({id:1,firstName: 'Hana',lastName: 'Ayman'});//type the collection name
-    //this line adds an object(record) to our db 
-    db.collection('FirstCollection').find().toArray(function (err, results){
-        console.log(results);//find all records, converting them to an array and displaying them.
+await client.connect();
+const database = client.db('myDB'); 
+const collection = database.collection('myCollection');
+
+//trial
+const result = await collection.insertOne({username:'Hana.Ayman',password:'hanoon33',wanttogo:[]});    
+
+client.close();
+
+const dom = new JSDOM(`
+    <!DOCTYPE html>
+    <html>
+      <body>
+        <div id="Annapurna"></div> 
+      </body>
+    </html>
+  `);
+const document = dom.window.document; 
+
+const list = document.getElementById('wanttogo_list');
+
+const annapurna = document.getElementById('Annapurna');
+annapurna.addEventListener('click', () => {
+    collection.find({
+        username:document.getElementsByName("username"),
+        password:document.getElementsByName("password"),
+        wanttogo:document.getElementsByName("wtg")
     });
+
+    const text = document.createElement('div');
+    text.textContent("Annapurna");
+    const item = document.createElement('li');
+    item.append(text);
+    list.append(item);
+
+    collection.updateOne({
+        username:document.getElementsByName(username),
+        password:document.getElementsByName(password)},
+        {$push:{wanttogo:"Annapurna"}});
 });
+
+const bali = document.getElementById('Bali');
+
+annapurna.addEventListener('click', () => {
+    const text = document.createElement('div');
+    text.textContent("Bali");
+    const item = document.createElement('li');
+    item.append(text);
+    list.append(item);
+
+    collection.updateOne({
+        username:document.getElementsByName(username),
+        password:document.getElementsByName(password)},
+        {$push:{wanttogo:"Bali"}});
+});
+
+const inca = document.getElementById('Inca');
+
+annapurna.addEventListener('click', () => {
+    const text = document.createElement('div');
+    text.textContent("Inca");
+    const item = document.createElement('li');
+    item.append(text);
+    list.append(item);
+
+    collection.updateOne({
+        username:document.getElementsByName(username),
+        password:document.getElementsByName(password)},
+        {$push:{wanttogo:"Inca"}});
+});
+const paris = document.getElementById('Paris');
+
+annapurna.addEventListener('click', () => {
+    const text = document.createElement('div');
+    text.textContent("Paris");
+    const item = document.createElement('li');
+    item.append(text);
+    list.append(item);
+
+    collection.updateOne({
+        username:document.getElementsByName(username),
+        password:document.getElementsByName(password)},
+        {$push:{wanttogo:"Paris"}});
+});
+const rome = document.getElementById('Rome');
+
+annapurna.addEventListener('click', () => {
+    const text = document.createElement('div');
+    text.textContent("Rome");
+    const item = document.createElement('li');
+    item.append(text);
+    list.append(item);
+
+    collection.updateOne({
+        username:document.getElementsByName(username),
+        password:document.getElementsByName(password)},
+        {$push:{wanttogo:"Rome"}});
+});
+
+const santorini = document.getElementById('Santorini');
+
+annapurna.addEventListener('click', () => {
+    const text = document.createElement('div');
+    text.textContent("Santorini");
+    const item = document.createElement('li');
+    item.append(text);
+    list.append(item);
+
+    collection.updateOne({
+        username:document.getElementsByName(username),
+        password:document.getElementsByName(password)},
+        {$push:{wanttogo:"Santorini"}});
+});
+
 //get requests
 app.get('/',function(req,res){
     res.render('login')
@@ -85,12 +198,5 @@ app.get('/wanttogo',function(req,res){
     res.render('wanttogo');
 });
 
-
-//post requests
-// app.post('/registration',function(req,res){
-//     var username = req.body.username;
-//     var password = req.body.password;
-
-// });
 
 app.listen(3000);//we are telling the express server to receive the requests coming to the local host on port # 3000
