@@ -22,5 +22,3 @@ This project aims to develop a simple travelling website based on the client/ser
     * Node.js, Express.js
 * **Database:** 
     * MongoDB (or another suitable database)
-
-  git repo<https://github.com/HanaAyman33/NetworksProject>
