@@ -9,6 +9,16 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+/*
+app.use((req, res, next) => {
+    console.log(`Incoming request: ${req.method} ${req.url}`);
+    next();
+});
+*/
+app.all('/search', (req, res) => {
+    console.warn('Blocked all requests to /search!');
+    res.status(404).send('Not Found');
+});
 
 app.set('views', path.join(__dirname, 'views')); 
 app.set('view engine', 'ejs'); 
@@ -22,16 +32,138 @@ app.use(express.static(path.join(__dirname, 'public')));
 //To connect mongodb to our nodejs code
 const uri = "mongodb://localhost:27017/"; 
 const client = new MongoClient(uri);
+let collection;
+async function connectToDatabase() {
+try {
+    await client.connect();
+    console.log("Connected successfully to MongoDB");
+    const database = client.db('myDB');
+    collection = database.collection('myCollection');
+} catch (error) {
+    console.error("Error connecting to MongoDB:", error);
+    process.exit(1); // Exit the process if the database connection fails
+}
+}
+await connectToDatabase();
+//await client.connect();
+//const database = client.db('myDB'); 
+//const collection = database.collection('myCollection');
 
-await client.connect();
-const database = client.db('myDB'); 
-const collection = database.collection('myCollection');
+process.on('SIGINT', async () => {
+    console.log("Closing MongoDB connection...");
+    await client.close();
+    process.exit(0);
+});
 
-//trial
-const result = await collection.insertOne({username:'Hana.Ayman',password:'hanoon33',wanttogo:[]});    
+// Middleware to show search bar on relevant pages
+app.use((req, res, next) => {
+    const excludedPaths = ['/registration', '/login'];
+    if (!excludedPaths.includes(req.path)) {
+        res.locals.showSearchBar = true;
+    } else {
+        res.locals.showSearchBar = false;
+    }
+    next();
+});
+// Search results route
+app.get('/getsearch', async (req, res) => {
+    const searchQuery = req.query.q;
 
-client.close();
+    if (!searchQuery || searchQuery.trim() === '') {
+        return res.json({ results: [] });
+    }
 
+    try {
+        const regex = new RegExp(searchQuery.trim(), 'i');
+        const results = await collection.find({ name: { $regex: regex } }).toArray();
+        res.json({ results });
+    } catch (error) {
+        console.error('Error during search:', error);
+        res.status(500).json({ message: 'An error occurred while searching.' });
+    }
+});
+
+app.post('/getsearch', (req, res) => {
+    console.warn('POST request to /getsearch detected!');
+    res.status(405).send('POST method not allowed.');
+});
+
+
+
+
+// Example destination routes
+['annapurna', 'bali', 'inca', 'paris', 'rome', 'santorini'].forEach((destination) => {
+    app.get(`/${destination}`, (req, res) => {
+        res.render(destination);
+    });
+});
+
+// 'Want to go' update route
+app.post('/wanttogo', async (req, res) => {
+    const { username, destination } = req.body;
+
+    if (!username || !destination) {
+        return res.status(400).send('Invalid request.');
+    }
+
+    try {
+        await collection.updateOne(
+            { username },
+            { $push: { wanttogo: destination } },
+            { upsert: true } // Create user record if it doesn't exist
+        );
+        res.status(200).send('Destination added to want-to-go list.');
+    } catch (error) {
+        console.error('Error updating want-to-go list:', error);
+        res.status(500).send('An error occurred.');
+    }
+});
+
+
+
+
+
+
+
+/*===========================================================================================
+Regarding Any commented lines, they were being used for dubbging problems and tracing errors
+ (Ignore) or remove indeed if needed :)
+=============================================================================================
+*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+app.use((req, res, next) => {
+    console.log(`${req.method} request to ${req.url}`);
+    next();
+});
+app.use((req, res, next) => {
+    console.log(`Request Method: ${req.method}, URL: ${req.url}`);
+    console.log('Headers:', req.headers);
+    console.log('Body:', req.body);
+    next();
+});
+app.use((req, res, next) => {
+    if (req.method === 'POST' && req.url === '/getsearch') {
+        console.warn(`Blocked POST request to ${req.url}`);
+        return res.status(405).send('POST not allowed. Use GET.');
+    }
+    next();
+});
+*/
+/*
 const dom = new JSDOM(`
     <!DOCTYPE html>
     <html>
@@ -137,6 +269,7 @@ annapurna.addEventListener('click', () => {
         {$push:{wanttogo:"Santorini"}});
 });
 
+*/
 //get requests
 app.get('/',function(req,res){
     res.render('login')
@@ -177,11 +310,11 @@ app.get('/inca',function(req,res){
 app.get('/paris',function(req,res){
     res.render('paris');
 });
-
+/*
 app.get('/registration',function(req,res){
     res.render('registration');
 });
-
+*/
 app.get('/rome',function(req,res){
     res.render('rome');
 });
@@ -197,6 +330,15 @@ app.get('/searchresults',function(req,res){
 app.get('/wanttogo',function(req,res){
     res.render('wanttogo');
 });
-
-
+/*
+// Base route
+app.get('/', (req, res) => {
+    res.render('home');
+});
+*/
+/*
+app.get('/test', (req, res) => {
+    res.sendFile(path.join(__dirname, 'test.html'));
+});
+*/
 app.listen(3000);//we are telling the express server to receive the requests coming to the local host on port # 3000
